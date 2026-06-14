@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wedding Web App</title>
+
+  <link rel="preconnect" href="https://googleapis.com">
+  <link rel="preconnect" href="https://gstatic.com" crossorigin>
+  <link href="https://googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('background.jpg'); 
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      margin: 0;
+      padding: 50px 20px 20px 20px;
+      display: flex; 
+      min-height: 100vh;
+    }
+    @media (min-width: 768px) { body { justify-content: center; align-items: flex-start; } }
+    @media (max-width: 767px) { body { justify-content: center; align-items: flex-start; } }
+    .card { 
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px; 
+      border-radius: 12px; 
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3); 
+      width: 100%;
+      max-width: 400px; 
+      text-align: center; 
+      backdrop-filter: blur(5px);
+    }
+    h1 {
+      font-family: 'Great Vibes', 'Georgia', serif;
+      font-size: 38px;
+      color: #8a7355;          
+      text-align: center;
+      margin-top: 3px;
+      margin-bottom: 10px;
+      font-weight: normal;     
+    }
+    .monogram { width: 100px; height: 100px; object-fit: contain; margin: 0 auto 15px auto; display: block; }
+    h2 { color: #333; margin-top: 5px; font-size: 22px; letter-spacing: 1px; }
+    h3 { color: #333; margin-top: 5px; }
+    p { color: #666; font-size: 15px; line-height: 1.4; }
+    input[type="text"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; text-align: center; }
+    button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+    button:hover { background-color: #45a049; }
+    button:disabled { background-color: #cccccc; cursor: default; }
+    .hidden { display: none; }
+    .error { color: #d9534f; font-weight: bold; margin-top: 15px; font-size: 14px; }
+    .success { color: #2ecc71; font-weight: bold; font-size: 18px; }
+    .seats-badge { background-color: #e8f4fd; color: #1d8cf8; font-weight: bold; padding: 12px; border-radius: 12px; display: inline-block; margin: 15px 0; font-size: 14px; border: 1px solid #b3d7ff; width: 100%; line-height: 1.4; }
+    .rsvp-btn { margin: 8px 0; padding: 14px; font-size: 16px; width: 100%; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;}
+    .accept { background-color: #2ecc71; }
+    .decline { background-color: #e74c3c; }
+    .accept:hover { background-color: #27ae60; }
+    .decline:hover { background-color: #c0392b; }
+    .contact-footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #eef2f5; }
+    .contact-footer p { margin: 4px 0; font-size: 13px; color: #777; }
+    .contact-footer a { color: #8a7355; text-decoration: none; font-weight: bold; }
+    .contact-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <img class="monogram" src="monogram.jpg" alt="Monogram Logo">
+  <h2>FIND YOUR INVITE</h2>
+  
+  <div id="searchSection">
+    <p>Let's get your RSVP sorted! Please enter your full name to find your name in our guest list.</p>
+    <input type="text" id="guestNameInput" placeholder="Last Name, First Name">
+    <button id="searchBtn" onclick="searchGuest()">Search Name</button>
+    <div id="message" class="error"></div>
+  </div>
+
+  <div id="rsvpSection" class="hidden">
+    <h3>Welcome, <span id="displayName"></span>!</h3>
+    <div class="seats-badge">Since we would like to keep our wedding as intimate as possible, we only have limited seats. We have reserved <span id="displaySeats"></span> seat(s) in your honor.</div>
+    <p>Will you be attending our event?</p>
+    <button class="rsvp-btn accept" onclick="sendRSVP('Attending')">Yes, Can't Wait!</button>
+    <button class="rsvp-btn decline" onclick="sendRSVP('Declined')">Sorry, Can't Make It</button>
+  </div>
+  
+  <div id="finalSection" class="hidden success">
+    <h3>Thank you! Your RSVP has been recorded.</h3>
+  </div>
+
+  <div class="contact-footer">
+    <p>You can also contact us at the following:</p>
+    <p>?? Phone: <a href="tel:+1234567890">+1 (234) 567-890</a></p>
+    <p>?? Email: <a href="mailto:your_email@example.com">your_email@example.com</a></p>
+  </div>
+</div>
+
+<script>
+  // CHANGE THIS URL TO MATCH YOUR APPS SCRIPT LINK
+  const API_URL = "https://script.google.com/macros/s/AKfycbyeQQ7P0CzEgakNcMY1fj4mltw8GrBozCBW2AbslgCtJeCSHlBnvG3g1_ORb8J6BeOl2A/exec";
+
+  let guestRow = null;
+
+  function searchGuest() {
+    let name = document.getElementById("guestNameInput").value.trim();
+    let messageDiv = document.getElementById("message");
+    let searchBtn = document.getElementById("searchBtn");
+    
+    if (!name) {
+      messageDiv.innerText = "Please enter a name to search.";
+      return;
+    }
+
+    messageDiv.innerText = "Searching...";
+    searchBtn.disabled = true;
+    
+    fetch(`${API_URL}?action=checkName&name=${encodeURIComponent(name)}`)
+      .then(response => response.json())
+      .then(result => {
+        searchBtn.disabled = false;
+        if (result.status === "found") {
+          guestRow = result.row;
+          document.getElementById("displayName").innerText = result.name;
+          document.getElementById("displaySeats").innerText = result.seats;
+          document.getElementById("searchSection").classList.add("hidden");
+          document.getElementById("rsvpSection").classList.remove("hidden");
+          messageDiv.innerText = "";
+        } else if (result.status === "already_rsvped") {
+          messageDiv.innerText = "You have already submitted an RSVP for this name.";
+        } else {
+          messageDiv.innerText = "We couldn't find your name on the list. Only invited guests are allowed to RSVP.";
+        }
+      })
+      .catch(error => {
+        searchBtn.disabled = false;
+        messageDiv.innerText = "Network connection problem. Please try again.";
+        console.error("Lookup Error:", error);
+      });
+  }
+
+  function sendRSVP(response) {
+    if (!guestRow) return;
+
+    fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        row: guestRow,
+        response: response
+      })
+    })
+    .then(() => {
+      document.getElementById("rsvpSection").classList.add("hidden");
+      document.getElementById("finalSection").classList.remove("hidden");
+    })
+    .catch(error => {
+      alert("Submission dropped. Please verify your connection.");
+      console.error("Submission Error:", error);
+    });
+  }
+</script>
+
+</body>
+</html>
